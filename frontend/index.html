@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Park Ranger | Login</title>
+    <style>
+        body {
+            background-color: #6C4A3D; /* Brown background from mockup */
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background-color: #F4F1E1; /* Beige card */
+            padding: 40px 60px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            width: 300px;
+        }
+        
+        /* THIS IS THE MISSING PIECE! */
+        .app-logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px auto; /* This centers the image perfectly */
+            display: block;
+            border-radius: 50%; /* This turns your square image into a perfect circle */
+            object-fit: cover; /* This stops the image from looking squished */
+            border: 3px solid #6C4A3D; /* Adds a nice little brown border around it */
+        }
+
+        h1 {
+            color: #000;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        .input-group {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .btn-signin {
+            background-color: #5C3D2E;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .btn-signin:hover {
+            background-color: #4A3024;
+        }
+        #error-message {
+            color: red;
+            font-size: 12px;
+            margin-top: 15px;
+            min-height: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <img src="park-ranger-logo.jpg" alt="Park Ranger Logo" class="app-logo">
+        <h1>Hi!</h1>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" autocomplete="off">
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password">
+            </div>
+
+            <button type="submit" class="btn-signin">Sign in</button>
+            <div id="error-message"></div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+
+            if (!user || !pass) {
+                errorDiv.innerText = "Fields cannot be empty";
+                return;
+            }
+
+            errorDiv.innerText = "Connecting to backend...";
+
+            try {
+                const response = await fetch('https://prsentimentanalysis.onrender.com/login', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                     },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === "success") {
+                    localStorage.setItem('ranger_token', data.token);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    errorDiv.innerText = "Invalid username or password";
+                }
+            } catch (err) {
+                errorDiv.innerText = "Error connecting to server. Is Flask running?";
+            }
+        });
+    </script>
+</body>
+</html>

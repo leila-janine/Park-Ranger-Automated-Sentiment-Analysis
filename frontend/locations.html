@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Park Ranger | Locations</title>
+    <style>
+        body {
+            background-color: #F4F1E1; /* Beige background */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        /* Top Navbar */
+        .navbar {
+            background-color: #6C4A3D; /* Brown navbar */
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h2 {
+            margin: 0;
+            font-weight: normal;
+        }
+        .btn-logout {
+            background-color: #D9534F;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        /* Tab Navigation Menu */
+        .tab-menu {
+            background-color: #A67B5B;
+            padding: 10px 30px;
+            display: flex;
+            gap: 20px;
+        }
+        .tab-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .tab-menu a.active {
+            background-color: white;
+            color: #6C4A3D;
+            font-weight: bold;
+        }
+        .tab-menu a:hover:not(.active) {
+            background-color: #8C6246;
+        }
+        
+        /* Layout Grid */
+        .container {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        /* Location Card Styles */
+        .location-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+        .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .score {
+            color: #777;
+            font-size: 14px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+        }
+        
+        /* Badges */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge.trending-up { background-color: #E8F5E9; color: #2E7D32; }
+        .badge.stable { background-color: #FFF3E0; color: #E65100; }
+        .badge.needs-focus { background-color: #FFEBEE; color: #C62828; }
+
+        /* Progress Bars */
+        .stat-row {
+            margin-bottom: 15px;
+        }
+        .stat-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        .progress-bar-bg {
+            background-color: #EEE;
+            height: 6px;
+            border-radius: 3px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+        .fill-positive { background-color: #4CAF50; }
+        .fill-neutral { background-color: #A67B5B; }
+        .fill-negative { background-color: #D9534F; }
+
+        .total-feedback {
+            font-size: 12px;
+            color: #777;
+            margin-top: 20px;
+            border-top: 1px solid #EEE;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <h2>Park Ranger Sentiment Analysis Dashboard</h2>
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+    </div>
+    
+    <div class="tab-menu">
+        <a href="dashboard.html">Overview</a>
+        <a href="locations.html" class="active">Locations</a>
+        <a href="products.html">Products</a>
+        <a href="feedback.html">Feedback Data</a>
+    </div>
+
+    <div class="container" id="locationsContainer">
+        </div>
+
+    <script>
+        // Security Check
+        if (!localStorage.getItem('ranger_token')) {
+            window.location.href = 'index.html';
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('ranger_token');
+            window.location.href = 'index.html';
+        });
+
+        async function loadLocationsData() {
+            try {
+                // Fetch both locations AND feedback simultaneously
+                const [locationsRes, feedbackRes] = await Promise.all([
+                    fetch('https://prsentimentanalysis.onrender.com/locations', {
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true',
+                        }
+                    }),
+                    fetch('https://prsentimentanalysis.onrender.com/feedback', {
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true',
+                        }
+                    })
+                ]);
+
+                const locations = await locationsRes.json();
+                const allFeedback = await feedbackRes.json();
+                const container = document.getElementById('locationsContainer');
+
+                locations.forEach(location => {
+                    // Filter feedback for THIS specific location
+                    const locFeedback = allFeedback.filter(f => f.location_id === location.location_id);
+                    const total = locFeedback.length;
+                    
+                    let pos = 0, neu = 0, neg = 0;
+                    locFeedback.forEach(f => {
+                        if (f.sentiment_label === 'Positive') pos++;
+                        else if (f.sentiment_label === 'Neutral') neu++;
+                        else if (f.sentiment_label === 'Negative') neg++;
+                    });
+
+                    // Calculate percentages for the progress bars (avoid dividing by zero)
+                    const posPct = total > 0 ? (pos / total) * 100 : 0;
+                    const neuPct = total > 0 ? (neu / total) * 100 : 0;
+                    const negPct = total > 0 ? (neg / total) * 100 : 0;
+
+                    // Determine badge class
+                    let badgeClass = 'stable';
+                    if (location.trend_status === 'Trending Up') badgeClass = 'trending-up';
+                    if (location.trend_status === 'Needs Focus') badgeClass = 'needs-focus';
+
+                    // Build the HTML card
+                    const cardHTML = `
+                        <div class="location-card">
+                            <div class="card-header">
+                                <h3>${location.location_name}</h3>
+                                <span class="badge ${badgeClass}">${location.trend_status}</span>
+                            </div>
+                            <div class="score">Score: ${location.current_score}/100</div>
+
+                            <div class="stat-row">
+                                <div class="stat-labels"><span>Positive</span> <span>${pos}</span></div>
+                                <div class="progress-bar-bg"><div class="progress-bar-fill fill-positive" style="width: ${posPct}%"></div></div>
+                            </div>
+                            
+                            <div class="stat-row">
+                                <div class="stat-labels"><span>Neutral</span> <span>${neu}</span></div>
+                                <div class="progress-bar-bg"><div class="progress-bar-fill fill-neutral" style="width: ${neuPct}%"></div></div>
+                            </div>
+
+                            <div class="stat-row">
+                                <div class="stat-labels"><span>Negative</span> <span>${neg}</span></div>
+                                <div class="progress-bar-bg"><div class="progress-bar-fill fill-negative" style="width: ${negPct}%"></div></div>
+                            </div>
+
+                            <div class="total-feedback">Total Feedback: ${total}</div>
+                        </div>
+                    `;
+
+                    // Inject the card into the grid
+                    container.innerHTML += cardHTML;
+                });
+
+            } catch (error) {
+                console.error("Error loading locations:", error);
+                document.getElementById('locationsContainer').innerHTML = "<p>Error loading locations data.</p>";
+            }
+        }
+
+        loadLocationsData();
+    </script>
+</body>
+</html>

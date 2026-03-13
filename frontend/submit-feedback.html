@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Park Ranger | Submit Feedback</title>
+    <style>
+        body {
+            background-color: #6C4A3D; /* Brown background */
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .form-container {
+            background-color: #F4F1E1; /* Beige card */
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            width: 400px;
+        }
+        h2 {
+            text-align: center;
+            color: #000;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        .input-group textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        .btn-submit {
+            background-color: #5C3D2E;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .btn-submit:hover {
+            background-color: #4A3024;
+        }
+        #status-message {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 15px;
+            min-height: 20px;
+            font-weight: bold;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <h2>Customer Feedback</h2>
+        
+        <form id="feedbackForm">
+            <div class="input-group">
+                <label for="location">Location</label>
+                <select id="location" required>
+                    <option value="1">Malolos</option>
+                    <option value="2">San Jose del Monte</option>
+                    <option value="3">Meycauayan</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="product">Product</label>
+                <select id="product" required>
+                    <option value="1">Coffee</option>
+                    <option value="2">Choco</option>
+                    <option value="3">Tea</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label for="feedback_text">Customer Review</label>
+                <textarea id="feedback_text" placeholder="Type your review here." required></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">Submit</button>
+            
+            <div id="status-message"></div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            
+            const locId = document.getElementById('location').value;
+            const prodId = document.getElementById('product').value;
+            const srcId = 1; // Defaulting to 1 for "Feedback Form"
+            const text = document.getElementById('feedback_text').value;
+            const statusDiv = document.getElementById('status-message');
+
+            statusDiv.className = '';
+            statusDiv.innerText = "Processing...";
+
+            const payload = {
+                location_id: locId,
+                product_id: prodId,
+                source_id: srcId,
+                feedback_text: text
+            };
+
+            try {
+                // Hitting your live Render API!
+                const response = await fetch('https://prsentimentanalysis.onrender.com/feedback', {
+                    method: 'POST',
+                    headers: { 
+                        // Notice we REMOVED the token requirement here! Anyone can post now.
+                        'Content-Type': 'application/json'
+                     },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.className = 'success';
+                    statusDiv.innerText = `Thank you for your feedback!`;
+                    
+                    // Clear the text box for the next customer
+                    document.getElementById('feedback_text').value = '';
+                } else {
+                    statusDiv.className = 'error';
+                    statusDiv.innerText = `Error: ${data.status || data.message}`;
+                }
+            } catch (err) {
+                statusDiv.className = 'error';
+                statusDiv.innerText = "Connection failed. Please try again later.";
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+</html>

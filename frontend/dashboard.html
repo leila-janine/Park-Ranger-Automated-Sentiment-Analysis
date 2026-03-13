@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Park Ranger | Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #F4F1E1; /* Beige background */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            background-color: #6C4A3D; /* Brown navbar */
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h2 {
+            margin: 0;
+            font-weight: normal;
+        }
+        .btn-logout {
+            background-color: #D9534F; /* Red logout button */
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .container {
+            padding: 30px;
+        }
+        .summary-cards {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            flex: 1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 5px solid gray;
+        }
+        .card.positive { border-left-color: #4CAF50; } /* Green */
+        .card.neutral { border-left-color: #A67B5B; } /* Brown */
+        .card.negative { border-left-color: #D9534F; } /* Red */
+        
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        .card .count {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .charts-row {
+            display: flex;
+            gap: 20px;
+        }
+        .chart-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            flex: 1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        /* New wrapper to force chart sizes */
+        .canvas-wrapper {
+            position: relative;
+            height: 250px; 
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <h2>Park Ranger Sentiment Analysis Dashboard</h2>
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+    </div>
+	<div class="tab-menu" style="background-color: #A67B5B; padding: 10px 30px; display: flex; gap: 20px;">
+        <a href="dashboard.html" style="background-color: white; color: #6C4A3D; font-weight: bold; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-size: 14px;">Overview</a>
+        <a href="locations.html" style="color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-size: 14px;">Locations</a>
+        <a href="products.html" style="color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-size: 14px;">Products</a>
+        <a href="feedback.html" style="color: white; text-decoration: none; padding: 8px 16px; border-radius: 20px; font-size: 14px;">Feedback Data</a>
+    </div>
+
+    <div class="container">
+        <div class="summary-cards">
+            <div class="card positive">
+                <h3>Positive Feedback</h3>
+                <p class="count" id="posCount">0</p>
+            </div>
+            <div class="card neutral">
+                <h3>Neutral Feedback</h3>
+                <p class="count" id="neuCount">0</p>
+            </div>
+            <div class="card negative">
+                <h3>Negative Feedback</h3>
+                <p class="count" id="negCount">0</p>
+            </div>
+        </div>
+
+        <div class="charts-row">
+            <div class="chart-container">
+                <h3>Sentiment Distribution</h3>
+                <div class="canvas-wrapper">
+                    <canvas id="pieChart">Your browser does not support the canvas element.</canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Satisfaction Score Trend</h3>
+                <div class="canvas-wrapper">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Security Check
+        if (!localStorage.getItem('ranger_token')) {
+            window.location.href = 'index.html';
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('ranger_token');
+            window.location.href = 'index.html';
+        });
+
+        // Fetch Data and Render Charts
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('https://prsentimentanalysis.onrender.com/feedback', {
+                    headers: {
+                        'ngrok-skip-browser-warning': 'true',
+                    }
+                });
+                const data = await response.json();
+
+                let pos = 0, neu = 0, neg = 0;
+
+                data.forEach(item => {
+                    if (item.sentiment_label === 'Positive') pos++;
+                    else if (item.sentiment_label === 'Neutral') neu++;
+                    else if (item.sentiment_label === 'Negative') neg++;
+                });
+
+                document.getElementById('posCount').innerText = pos;
+                document.getElementById('neuCount').innerText = neu;
+                document.getElementById('negCount').innerText = neg;
+
+                // Render Pie Chart
+                new Chart(document.getElementById('pieChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Positive', 'Neutral', 'Negative'],
+                        datasets: [{
+                            data: [pos, neu, neg],
+                            backgroundColor: ['#4CAF50', '#A67B5B', '#D9534F']
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false 
+                    }
+                });
+
+                // Render Line Chart
+                new Chart(document.getElementById('lineChart'), {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Average Sentiment Score',
+                            data: [70, 75, 78, 82], 
+                            borderColor: '#333',
+                            fill: false
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        scales: { y: { min: 0, max: 100 } } 
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error fetching dashboard data or drawing charts:", error);
+            }
+        }
+
+        loadDashboardData();
+    </script>
+</body>
+</html>
